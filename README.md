@@ -31,21 +31,28 @@ surucc/sumz   CHANGELOG.md ─┘        (GitHub Actions)                       
 
 ## 로컬에서 띄우기
 
-ES 모듈 + `fetch`라 `file://`로는 안 열린다. 아무 정적 서버면 된다.
+ES 모듈 + `fetch`라 `file://`로는 안 열린다. 아무 정적 서버면 된다. (PowerShell 기준)
 
-```bash
+준비 (한 번만):
+
+```powershell
 python -m venv .venv
 .venv\Scripts\python.exe -m pip install -r requirements.txt
+```
 
-# 내 PC에 있는 저장소에서 바로 읽기 (토큰 불필요)
-.venv\Scripts\python.exe tools/build_history.py ^
-  --local suloa=D:/work/game/suloa/CHANGELOG.md ^
-  --local sumz=D:/work/sumz/maru/CHANGELOG.md
+내 PC에 있는 저장소에서 바로 읽기 — 토큰이 필요 없다:
 
+```powershell
+.venv\Scripts\python.exe tools/build_history.py --local suloa=D:/work/game/suloa/CHANGELOG.md --local sumz=D:/work/sumz/maru/CHANGELOG.md
+```
+
+띄우기 (<http://localhost:8788>):
+
+```powershell
 python -m http.server 8788
 ```
 
-GitHub에서 받아오는 경로를 확인하려면 (토큰을 화면에 찍지 않는다):
+GitHub에서 받아오는 경로까지 확인하려면 (토큰을 화면에 찍지 않는다):
 
 ```powershell
 $env:GITHUB_TOKEN = (gh auth token); .venv\Scripts\python.exe tools/build_history.py; $env:GITHUB_TOKEN = ""
@@ -53,7 +60,7 @@ $env:GITHUB_TOKEN = (gh auth token); .venv\Scripts\python.exe tools/build_histor
 
 테스트:
 
-```bash
+```powershell
 .venv\Scripts\python.exe -m pytest tests -q
 ```
 
@@ -88,3 +95,17 @@ Actions 탭에서 실패한 실행을 연다. 빌드는 실패를 감추지 않�
 | `조회 실패: HTTP 404` / `403` | 토큰 만료, 또는 토큰의 접근 저장소 목록에 그 저장소가 빠짐 |
 | `항목이 0건입니다` | CHANGELOG 헤더 형식이 `## [버전] - YYYY-MM-DD · 요약` 에서 벗어남 |
 | `형식에 맞지 않는 헤더를 건너뜀` (경고) | 그 줄만 빠지고 나머지는 올라감. 헤더를 고치면 된다 |
+| **실패조차 없이 그냥 안 올라옴** | 아래 "조용히 멈추는 경우" 참고 |
+
+### 조용히 멈추는 경우 두 가지
+
+로그에 아무 것도 안 남으므로 증상으로만 알아챌 수 있다. 연혁이 며칠째 안 쌓이면 여기를 본다.
+
+1. **60일 무활동 시 스케줄 자동 정지** — GitHub은 저장소에 60일간 커밋이 없으면 `schedule`
+   워크플로를 말없이 끈다. Actions 탭 상단에 다시 켜는 배너가 뜬다.
+   이 저장소는 코드가 거의 안 바뀌므로 실제로 걸릴 수 있다.
+2. **토큰 만료** — 만료일이 지나면 1번과 달리 실행은 되고 `HTTP 401/404`로 실패한다.
+   만료 1주 전 GitHub이 메일을 보낸다. 갱신 후 시크릿을 다시 넣으면 된다.
+
+둘 다 <https://github.com/teamsuru/teamsuru.github.io/actions> 에서 `Run workflow` 버튼으로
+수동 실행해 바로 복구할 수 있다.
