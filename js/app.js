@@ -130,20 +130,27 @@ function renderProjects(projects) {
   );
 }
 
-function renderFilters(projects, current, onChange) {
+/** 버튼은 한 번만 만든다. 누를 때마다 다시 그리면 키보드 포커스가 날아간다.
+ *  현재 선택을 표시하는 함수를 돌려준다. */
+function renderFilters(projects, onChange) {
   const box = document.getElementById("filters");
   const options = [{ key: FILTER_ALL, name: "전체" }, ...projects];
 
-  box.replaceChildren(
-    ...options.map((opt) => {
-      const btn = el("button", "filter-btn", opt.name);
-      btn.type = "button";
-      btn.setAttribute("aria-pressed", String(opt.key === current));
-      if (opt.key !== FILTER_ALL) btn.setAttribute("style", toneVars(opt.key));
-      btn.addEventListener("click", () => onChange(opt.key));
-      return btn;
-    })
-  );
+  const buttons = options.map((opt) => {
+    const btn = el("button", "filter-btn", opt.name);
+    btn.type = "button";
+    btn.dataset.key = opt.key;
+    if (opt.key !== FILTER_ALL) btn.setAttribute("style", toneVars(opt.key));
+    btn.addEventListener("click", () => onChange(opt.key));
+    return btn;
+  });
+  box.replaceChildren(...buttons);
+
+  return (current) => {
+    for (const btn of buttons) {
+      btn.setAttribute("aria-pressed", String(btn.dataset.key === current));
+    }
+  };
 }
 
 function renderTimeline(entries, projectNames) {
@@ -219,16 +226,16 @@ async function main() {
   renderStats(data);
   renderProjects(data.projects);
 
-  let filter = FILTER_ALL;
-  const apply = (next) => {
-    filter = next;
-    renderFilters(data.projects, filter, apply);
+  let markPressed;
+  const applyFilter = (next) => {
+    markPressed(next);
     renderTimeline(
-      filter === FILTER_ALL ? data.entries : data.entries.filter((e) => e.project === filter),
+      next === FILTER_ALL ? data.entries : data.entries.filter((e) => e.project === next),
       projectNames
     );
   };
-  apply(FILTER_ALL);
+  markPressed = renderFilters(data.projects, applyFilter);
+  applyFilter(FILTER_ALL);
 
   if (data.generated_at) {
     const at = data.generated_at.slice(0, 16).replace("T", " ");
