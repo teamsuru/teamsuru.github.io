@@ -1,0 +1,16 @@
+# 빌드 산출물 (tools/build_history.py 가 만든다. 커밋하지 않는다)
+data/history.json
+_site/
+
+# 파이썬
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# 편집기 / OS
+.claude/
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini

@@ -1,0 +1,63 @@
+name: 사이트 갱신 및 배포
+
+on:
+  # 하루 한 번 자동 갱신 (UTC 21:00 = KST 06:00)
+  schedule:
+    - cron: "0 21 * * *"
+  # 사이트 코드를 고쳐 올렸을 때
+  push:
+    branches: [main]
+  # Actions 탭에서 버튼으로 즉시 갱신
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 배포가 겹치지 않게 한 번에 하나만
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: CHANGELOG 수집 및 data/history.json 생성
+        # 비공개 저장소를 읽는 읽기 전용 토큰. 저장소 Settings > Secrets 에 등록한다.
+        env:
+          GITHUB_TOKEN: ${{ secrets.CHANGELOG_READ_TOKEN }}
+        run: python tools/build_history.py
+
+      - name: 결과 확인 (조용한 실패 금지)
+        run: |
+          test -s data/history.json || { echo "[오류] data/history.json 이 생성되지 않았습니다."; exit 1; }
+          n=$(python -c "import json;print(len(json.load(open('data/history.json',encoding='utf-8'))['entries']))")
+          echo "항목 ${n}건"
+          test "$n" -gt 0 || { echo "[오류] 항목이 0건입니다. 배포를 중단합니다."; exit 1; }
+
+      - name: 배포 파일 모으기
+        # tools/ tests/ 등 사이트에 필요 없는 파일은 올리지 않는다.
+        run: |
+          mkdir -p _site
+          cp -r index.html favicon.svg css js data _site/
+          ls -R _site
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - id: deploy
+        uses: actions/deploy-pages@v4

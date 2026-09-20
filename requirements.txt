@@ -1,0 +1,9 @@
+# ASCII only - pip 24.0 and older read this file with the system locale (cp949 on Windows).
+#
+# The build script (tools/build_history.py) uses the standard library only,
+# except that Windows ships no IANA time zone database, so ZoneInfo("Asia/Seoul")
+# needs this package locally. Linux CI already has system tzdata.
+tzdata==2025.2
+
+# Tests only.
+pytest==8.3.4
