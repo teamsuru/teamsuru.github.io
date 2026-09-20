@@ -43,6 +43,35 @@ def test_소제목은_직전_항목에_붙는다():
     assert entry.subheadings == ["화면 디자인 개편", "청구서"]
 
 
+def test_릴리스_표시_소제목은_개수로_묶는다():
+    """### PC 앱 v0.2.26 같은 번호 나열은 칩으로 늘어놓지 않는다."""
+    text = (
+        "## [1.2.2] - 2026-09-12 · 인식 보정\n"
+        "### 화면 인식\n"
+        "### PC 앱 v0.2.26\n"
+        "### PC 앱 v0.2.25\n"
+        "### PC 앱 v0.2.24\n"
+    )
+    (entry,) = parse_changelog(text, "t")
+    assert entry.subheadings == ["화면 인식"]
+    assert entry.releases == {"PC 앱": 3}
+
+
+def test_릴리스_표시가_섞여도_작업_제목은_그대로_남는다():
+    text = "## [1.0.0] - 2026-09-05 · 첫 공개\n### 앱 창: 되돌리기\n### 버전 v1 정리\n"
+    (entry,) = parse_changelog(text, "t")
+    # "버전 v1 정리" 는 vX.Y 로 끝나지 않으므로 작업 제목이다.
+    assert entry.subheadings == ["앱 창: 되돌리기", "버전 v1 정리"]
+    assert entry.releases == {}
+
+
+def test_두_자리_버전_릴리스_표시도_묶인다():
+    text = "## [1.0.0] - 2026-09-05 · 첫 공개\n### 런처 v1.2\n"
+    (entry,) = parse_changelog(text, "t")
+    assert entry.releases == {"런처": 1}
+    assert entry.subheadings == []
+
+
 def test_여러_항목이_파일_순서대로_나온다():
     text = "## [1.1.0] - 2026-09-06 · 나중\n## [1.0.0] - 2026-09-05 · 처음\n"
     entries = parse_changelog(text, "t")

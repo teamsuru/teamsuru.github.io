@@ -181,9 +181,12 @@ function renderTimeline(entries, projectNames) {
     if (!entry.summary) summary.classList.add("is-empty");
     body.append(top, summary);
 
-    if (entry.subheadings?.length) {
+    const releases = Object.entries(entry.releases ?? {});
+    if (entry.subheadings?.length || releases.length) {
       const subs = el("ul", "sub-list");
-      subs.append(...entry.subheadings.map((s) => el("li", null, s)));
+      subs.append(...(entry.subheadings ?? []).map((s) => el("li", null, s)));
+      // "PC 앱 v0.2.26" 같은 릴리스 표시는 하나씩 늘어놓지 않고 개수로 묶는다.
+      subs.append(...releases.map(([label, n]) => el("li", "sub-count", `${label} 릴리스 ${n}회`)));
       body.append(subs);
     }
 

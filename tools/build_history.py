@@ -57,8 +57,9 @@ PROJECTS: list[dict] = [
     },
 ]
 
-# 헤더만 싣는다(공개 범위: 버전·날짜·한줄요약). True 로 바꾸면 ### 소제목도 함께 싣는다.
-INCLUDE_SUBHEADINGS = False
+# ### 소제목까지 싣는다(제목만. 본문은 어느 쪽이든 싣지 않는다).
+# False 로 바꾸면 버전·날짜·한줄요약만 남는다.
+INCLUDE_SUBHEADINGS = True
 
 # ## [1.3.1] - 2026-09-20 · 레벨·전투력 변동 표시
 #    구분자는 가운뎃점 U+00B7. 요약이 없는 옛 항목도 허용한다.
@@ -67,6 +68,10 @@ HEADER_RE = re.compile(
     r"(?:\s*[\u00b7\u2022]\s*(?P<summary>.+?))?\s*$"
 )
 SUBHEADER_RE = re.compile(r"^###\s+(?P<title>.+?)\s*$")
+
+# "### PC 앱 v0.2.26" 처럼 릴리스를 표시하는 소제목. 작업 제목이 아니라 번호 나열이라
+# 하나씩 늘어놓지 않고 "PC 앱 릴리스 19회" 로 묶는다(SULOA 1.2.2 에 19개가 붙어 있다).
+RELEASE_SUBHEADER_RE = re.compile(r"^(?P<label>.+?)\s+v\d+\.\d+(?:\.\d+)?$")
 
 GITHUB_API = "https://api.github.com/repos/{repo}/contents/{path}"
 OUT_PATH = Path(__file__).resolve().parent.parent / "data" / "history.json"
@@ -79,6 +84,7 @@ class Entry:
     date: str
     summary: str
     subheadings: list[str] = field(default_factory=list)
+    releases: dict[str, int] = field(default_factory=dict)
 
     def as_dict(self) -> dict:
         out = {
@@ -87,8 +93,11 @@ class Entry:
             "date": self.date,
             "summary": self.summary,
         }
-        if INCLUDE_SUBHEADINGS and self.subheadings:
-            out["subheadings"] = self.subheadings
+        if INCLUDE_SUBHEADINGS:
+            if self.subheadings:
+                out["subheadings"] = self.subheadings
+            if self.releases:
+                out["releases"] = self.releases
         return out
 
 
@@ -119,9 +128,19 @@ def parse_changelog(text: str, project_key: str) -> list[Entry]:
                 )
             )
         elif entries and (m := SUBHEADER_RE.match(line)):
-            entries[-1].subheadings.append(m.group("title"))
+            title = m.group("title")
+            if rel := RELEASE_SUBHEADER_RE.match(title):
+                label = rel.group("label")
+                entries[-1].releases[label] = entries[-1].releases.get(label, 0) + 1
+            else:
+                entries[-1].subheadings.append(title)
 
-    print(f"  {project_key}: ## 헤더 {heading_lines}줄 -> 항목 {len(entries)}건 파싱")
+    subs = sum(len(e.subheadings) for e in entries)
+    rels = sum(sum(e.releases.values()) for e in entries)
+    print(
+        f"  {project_key}: ## 헤더 {heading_lines}줄 -> 항목 {len(entries)}건 파싱"
+        f" (소제목 {subs}개, 릴리스 표시 {rels}개는 묶음)"
+    )
     if heading_lines and not entries:
         raise SystemExit(f"[오류] {project_key}: 헤더는 {heading_lines}줄인데 파싱된 항목이 0건입니다.")
     return entries
