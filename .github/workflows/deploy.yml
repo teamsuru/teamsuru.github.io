@@ -53,6 +53,10 @@ jobs:
           cp -r index.html favicon.svg css js data _site/
           ls -R _site
 
+      - name: css/js 주소에 내용 해시 붙이기
+        # index.html 과 js/css 가 따로 캐시돼 새 HTML 에 옛 JS 가 물리는 것을 막는다.
+        run: python tools/stamp_assets.py _site
+
       - uses: actions/configure-pages@v5
 
       - uses: actions/upload-pages-artifact@v3

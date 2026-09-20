@@ -30,7 +30,8 @@ surucc/sumz   CHANGELOG.md ─┘        (GitHub Actions)                       
 |---|---|
 | `index.html` `css/` `js/` | 화면 (정적 HTML + ES 모듈, 빌드 도구 없음) |
 | `tools/build_history.py` | CHANGELOG 수집·파싱 -> `data/history.json` (표준 라이브러리만 사용) |
-| `tests/test_parse.py` | 헤더 파서 회귀 테스트 |
+| `tools/stamp_assets.py` | 배포 폴더의 css/js 주소에 내용 해시를 붙여 캐시 어긋남을 막는다 |
+| `tests/` | 회귀 테스트 (헤더 파서, 해시 붙이기) |
 | `.github/workflows/deploy.yml` | 갱신 + Pages 배포 |
 | `data/history.json` | 빌드 산출물. 커밋하지 않는다 (`.gitignore`) |
 
